@@ -10,16 +10,52 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <script>
     (function() {
-      const iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512"><rect width="512" height="512" rx="110" fill="#09090b"/><text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-weight="900" font-size="110" fill="#ffffff">SPORT</text><rect x="96" y="320" width="320" height="75" rx="16" fill="#f97316"/><text x="50%" y="362" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-weight="900" font-size="68" fill="#000000">HUB</text></svg>`;
-      const iconUrl = 'data:image/svg+xml;utf8,' + encodeURIComponent(iconSvg);
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 512;
+      const ctx = canvas.getContext('2d');
+
+      // Черный фон
+      ctx.fillStyle = '#09090b';
+      ctx.fillRect(0, 0, 512, 512);
+
+      // Надпись SPORT
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '900 110px Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('SPORT', 256, 195);
+
+      // Оранжевая плашка
+      ctx.fillStyle = '#f97316';
+      ctx.beginPath();
+      ctx.roundRect(96, 275, 320, 95, 20);
+      ctx.fill();
+
+      // Надпись HUB
+      ctx.fillStyle = '#000000';
+      ctx.font = '900 76px Arial, sans-serif';
+      ctx.fillText('HUB', 256, 326);
+
+      const pngUrl = canvas.toDataURL('image/png');
+
+      const appleIcon = document.createElement('link');
+      appleIcon.rel = 'apple-touch-icon';
+      appleIcon.href = pngUrl;
+      document.head.appendChild(appleIcon);
+
       const manifest = {
         name: "Sporthub",
         short_name: "Sporthub",
-        start_url: window.location.href,
+        start_url: window.location.origin + window.location.pathname,
+        scope: window.location.origin + window.location.pathname,
         display: "standalone",
         background_color: "#09090b",
         theme_color: "#09090b",
-        icons: [{ src: iconUrl, sizes: "512x512", type: "image/svg+xml", purpose: "any maskable" }]
+        icons: [
+          { src: pngUrl, sizes: "192x192", type: "image/png", purpose: "any" },
+          { src: pngUrl, sizes: "512x512", type: "image/png", purpose: "any maskable" }
+        ]
       };
       const link = document.createElement('link');
       link.rel = 'manifest';
