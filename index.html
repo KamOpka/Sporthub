@@ -8,60 +8,15 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#09090b">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="./manifest.json">
   <script>
-    (function() {
-      const canvas = document.createElement('canvas');
-      canvas.width = 512;
-      canvas.height = 512;
-      const ctx = canvas.getContext('2d');
-
-      // Черный фон
-      ctx.fillStyle = '#09090b';
-      ctx.fillRect(0, 0, 512, 512);
-
-      // Надпись SPORT
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '900 110px Arial, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('SPORT', 256, 195);
-
-      // Оранжевая плашка
-      ctx.fillStyle = '#f97316';
-      ctx.beginPath();
-      ctx.roundRect(96, 275, 320, 95, 20);
-      ctx.fill();
-
-      // Надпись HUB
-      ctx.fillStyle = '#000000';
-      ctx.font = '900 76px Arial, sans-serif';
-      ctx.fillText('HUB', 256, 326);
-
-      const pngUrl = canvas.toDataURL('image/png');
-
-      const appleIcon = document.createElement('link');
-      appleIcon.rel = 'apple-touch-icon';
-      appleIcon.href = pngUrl;
-      document.head.appendChild(appleIcon);
-
-      const manifest = {
-        name: "Sporthub",
-        short_name: "Sporthub",
-        start_url: window.location.origin + window.location.pathname,
-        scope: window.location.origin + window.location.pathname,
-        display: "standalone",
-        background_color: "#09090b",
-        theme_color: "#09090b",
-        icons: [
-          { src: pngUrl, sizes: "192x192", type: "image/png", purpose: "any" },
-          { src: pngUrl, sizes: "512x512", type: "image/png", purpose: "any maskable" }
-        ]
-      };
-      const link = document.createElement('link');
-      link.rel = 'manifest';
-      link.href = 'data:application/manifest+json;utf8,' + encodeURIComponent(JSON.stringify(manifest));
-      document.head.appendChild(link);
-    })();
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js');
+    }
   </script>
   <meta name="theme-color" content="#0a0a0a">
   <meta name="mobile-web-app-capable" content="yes">
