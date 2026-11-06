@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Sporthub</title>
+  <meta name="theme-color" content="#09090b">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Sporthub">
+  <link rel="manifest" href='data:application/manifest+json,{"name":"Sporthub","short_name":"Sporthub","start_url":".","display":"standalone","background_color":"#09090b","theme_color":"#09090b"}'>
+  <meta name="theme-color" content="#0a0a0a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Sporthub">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='96' fill='%230a0a0a'/%3E%3Ctext x='256' y='215' font-family='Inter, Arial, sans-serif' font-weight='800' font-size='150' fill='%23ffffff' text-anchor='middle'%3ESport%3C/text%3E%3Crect x='76' y='255' width='360' height='190' rx='32' fill='%23f59300'/%3E%3Ctext x='256' y='405' font-family='Inter, Arial, sans-serif' font-weight='800' font-size='165' fill='%230a0a0a' text-anchor='middle'%3Ehub%3C/text%3E%3C/svg%3E">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' fill='%230a0a0a'/%3E%3Ctext x='256' y='215' font-family='Inter, Arial, sans-serif' font-weight='800' font-size='150' fill='%23ffffff' text-anchor='middle'%3ESport%3C/text%3E%3Crect x='76' y='255' width='360' height='190' rx='32' fill='%23f59300'/%3E%3Ctext x='256' y='405' font-family='Inter, Arial, sans-serif' font-weight='800' font-size='165' fill='%230a0a0a' text-anchor='middle'%3Ehub%3C/text%3E%3C/svg%3E">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --accent: #f59300;
+      --accent-hover: #d98200;
+      --accent-soft: rgba(245, 147, 0, 0.12);
+      --accent-glow: rgba(245, 147, 0, 0.22);
+    }
+    body {
+      background-color: #0a0a0a;
+      color: #f5f5f5;
+      font-family: 'Inter', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    .card {
+      background-color: #141414;
+      border: 1px solid #242424;
+      border-radius: 14px;
+      transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .tab-active {
+      background-color: var(--accent) !important;
+      color: #0a0a0a !important;
+      font-weight: 600;
+    }
+    input, select {
+      background-color: #0a0a0a !important;
+      border: 1px solid #262626 !important;
+      color: #ffffff !important;
+      border-radius: 10px !important;
+      transition: all 0.2s ease;
+    }
+    input:focus, select:focus {
+      border-color: var(--accent) !important;
+      box-shadow: 0 0 0 3px rgba(245, 147, 0, 0.12);
+      outline: none;
+    }
+
+    /* 3) Убираем стрелочки у input type="number" во всех браузерах и центрируем числа */
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+      -webkit-appearance: none !important;
+      margin: 0 !important;
+    }
+    input[type="number"] {
+      -moz-appearance: textfield !important;
+      appearance: textfield !important;
+      text-align: center !important;
+    }
+    input::placeholder {
+      text-align: center !important;
+      color: #555555;
+    }
+
+    /* Анимация нажатия на все кнопки */
+    button {
+      transition: transform 0.14s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease, color 0.2s ease !important;
+    }
+    button:active {
+      transform: scale(0.96) !important;
+    }
+
+    /* 1) Плавная анимация экранов и вкладок */
+    .view-fade-in {
+      animation: viewFadeIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .view-fade-out {
+      animation: viewFadeOut 0.14s cubic-bezier(0.4, 0, 1, 1) forwards;
+    }
+
+    @keyframes viewFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes viewFadeOut {
+      from {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      to {
+        opacity: 0;
+        transform: translateY(-6px);
+      }
+    }
+
+    /* Плавное каскадное появление карточек упражнений */
+    .card-stagger {
+      animation: cardEnter 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    @keyframes cardEnter {
+      from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.985);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    /* Стилизация и плавная анимация вкладок дней (Среда / Пятница / Воскресенье) */
+    .day-tab-btn {
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      border-width: 2px !important;
+    }
+    .day-tab-btn.active {
+      border-color: var(--accent) !important;
+      background-color: rgba(245, 147, 0, 0.1) !important;
+      opacity: 1 !important;
+      transform: scale(1.02);
+    }
+    .day-tab-btn:not(.active) {
+      border-color: #242424 !important;
+      background-color: #141414 !important;
+      opacity: 0.75 !important;
+    }
+    .day-tab-btn:not(.active):hover {
+      opacity: 1 !important;
+      border-color: #383838 !important;
+      background-color: #1a1a1a !important;
+    }
+
+    /* 2) Кастомный выпадающий список выбора графика с оранжевой подсветкой при наведении */
+    .custom-select-wrapper {
+      position: relative;
+      user-select: none;
+    }
+    .custom-select-trigger {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      background-color: #0a0a0a;
+      border: 1px solid #262626;
+      border-radius: 12px;
+      padding: 0.75rem 1rem;
+      font-size: 0.875rem;
+      color: #ffffff;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .custom-select-trigger:hover {
+      border-color: #404040;
+    }
+    .custom-select-wrapper.open .custom-select-trigger {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(245, 147, 0, 0.12);
+    }
+    .custom-select-arrow {
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      color: #737373;
+    }
+    .custom-select-wrapper.open .custom-select-arrow {
+      transform: rotate(180deg);
+      color: var(--accent);
+    }
+    .custom-select-options {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      right: 0;
+      background-color: #141414;
+      border: 1px solid #2a2a2a;
+      border-radius: 12px;
+      overflow: hidden;
+      z-index: 50;
+      box-shadow: 0 12px 28px -5px rgba(0, 0, 0, 0.7), 0 8px 10px -6px rgba(0, 0, 0, 0.7);
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-8px) scale(0.98);
+      transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.2s;
+      max-height: 260px;
+      overflow-y: auto;
+    }
+    .custom-select-wrapper.open .custom-select-options {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0) scale(1);
+    }
+    .custom-select-option {
+      padding: 0.75rem 1rem;
+      font-size: 0.875rem;
+      color: #d4d4d4;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: background-color 0.15s ease, color 0.15s ease, padding-left 0.15s ease;
+    }
+    /* То самое требование 2: при наведении название подсвечивается оранжевым */
+    .custom-select-option:hover {
+      background-color: var(--accent) !important;
+      color: #0a0a0a !important;
+      font-weight: 600;
+      padding-left: 1.15rem;
+    }
+    .custom-select-option:hover .check-icon {
+      color: #0a0a0a !important;
+    }
+    .custom-select-option.selected {
+      background-color: rgba(245, 147, 0, 0.12);
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .custom-select-option.selected:hover {
+      background-color: var(--accent) !important;
+      color: #0a0a0a !important;
+    }
+
+    /* Перекрас всех акцентов в янтарно-оранжевый */
+    .bg-slate-800, .bg-slate-800\/90, .bg-slate-900, .bg-slate-900\/70 { background-color: #141414 !important; }
+    .border-slate-700, .border-slate-800 { border-color: #242424 !important; }
+    .text-slate-400, .text-slate-300 { color: #737373 !important; }
+    .border-blue-500 { border-color: var(--accent) !important; }
+    .bg-blue-950\/50 { background-color: rgba(245, 147, 0, 0.1) !important; }
+    .text-blue-400, .text-blue-300, .text-emerald-400, .text-orange-500 { color: var(--accent) !important; }
+    .bg-\[\#ff5500\], .bg-blue-600 { background-color: var(--accent) !important; color: #0a0a0a !important; }
+    .hover\:bg-\[\#e04b00\]:hover, .hover\:bg-blue-500:hover { background-color: var(--accent-hover) !important; }
+    /* Убираем стрелочки в полях ввода чисел и центрируем цифры */
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    input[type="number"] {
+      -moz-appearance: textfield;
+      text-align: center;
+    }
+
+    /* Настоящий плавный переход для экранов и дней недели */
+    #screenLog, #screenStats, #exercisesContainer {
+      transition: opacity 0.22s ease, transform 0.22s ease;
+    }
+    .view-hidden {
+      opacity: 0 !important;
+      transform: translateY(8px) !important;
+      pointer-events: none;
+    }
+
+    /* Оранжевая подсветка при наведении в списке упражнений */
+    .custom-option {
+      transition: background-color 0.15s ease, color 0.15s ease;
+    }
+    .custom-option:hover {
+      background-color: var(--accent) !important;
+      color: #0a0a0a !important;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body class="pb-24 max-w-md mx-auto min-h-screen p-4">
+
+  <!-- Заголовок -->
+  <header class="flex justify-between items-center mb-8 pt-4 border-b border-neutral-900 pb-4">
+    <div>
+      <h1 class="text-2xl font-extrabold tracking-tight flex items-center select-none">
+        <span class="text-white">Sport</span>
+        <span class="bg-[#f59300] text-[#0a0a0a] px-1.5 py-0.5 rounded-[7px] ml-1 leading-none">hub</span>
+      </h1>
+      <p id="currentDateDisplay" class="text-xs text-slate-400 mt-1.5"></p>
+    </div>
+    <button type="button" onclick="exportBackup()" class="text-xs bg-slate-800 hover:border-orange-500 text-slate-300 px-3.5 py-2 rounded-lg border border-slate-700 transition">
+      Экспорт
+    </button>
+  </header>
+
+  <!-- Навигация по экранам -->
+  <div class="grid grid-cols-2 gap-2 p-1 bg-slate-800/90 rounded-xl mb-6 border border-slate-700">
+    <button type="button" id="btnTabLog" onclick="switchScreen('log')" class="py-2.5 rounded-lg text-sm font-semibold tab-active transition-all duration-300">
+      Записать веса
+    </button>
+    <button type="button" id="btnTabStats" onclick="switchScreen('stats')" class="py-2.5 rounded-lg text-sm font-semibold text-slate-400 hover:text-white transition-all duration-300">
+      Графики и История
+    </button>
+  </div>
+
+  <!-- ЭКРАН 1: ЗАПИСЬ ТРЕНИРОВКИ -->
+  <section id="screenLog" class="view-fade-in">
+    <!-- Выбор дня программы -->
+    <div class="mb-5">
+      <label class="text-xs text-slate-400 uppercase font-semibold tracking-wider block mb-2">Выбери тренировочный день:</label>
+      <div class="grid grid-cols-3 gap-2">
+        <button type="button" onclick="selectWorkoutDay('wed')" id="dayBtn_wed" class="day-tab-btn p-2.5 rounded-xl text-xs font-medium text-center">
+          <div class="font-bold text-sm mb-0.5">Среда</div>
+          <div class="text-slate-400 text-[11px]">Грудь + Пресс</div>
+        </button>
+        <button type="button" onclick="selectWorkoutDay('fri')" id="dayBtn_fri" class="day-tab-btn p-2.5 rounded-xl text-xs font-medium text-center">
+          <div class="font-bold text-sm mb-0.5">Пятница</div>
+          <div class="text-slate-400 text-[11px]">Руки + Плечи</div>
+        </button>
+        <button type="button" onclick="selectWorkoutDay('sun')" id="dayBtn_sun" class="day-tab-btn p-2.5 rounded-xl text-xs font-medium text-center">
+          <div class="font-bold text-sm mb-0.5">Воскресенье</div>
+          <div class="text-slate-400 text-[11px]">Спина + Пресс</div>
+        </button>
+      </div>
+    </div>
+
+    <!-- Дата записи -->
+    <div class="mb-4 flex items-center justify-between card p-3">
+      <span class="text-sm text-slate-300">Дата тренировки:</span>
+      <input type="date" id="workoutDate" class="rounded-lg px-3 py-1.5 text-sm">
+    </div>
+
+    <!-- Список упражнений выбранного дня -->
+    <div id="exercisesContainer" class="space-y-3 mb-6"></div>
+
+    <button type="button" onclick="saveWorkout()" class="w-full py-3.5 bg-[#ff5500] hover:bg-[#e04b00] active:scale-[0.99] text-black rounded-xl font-semibold text-sm uppercase tracking-wider transition">
+      Сохранить результат
+    </button>
+    <p id="saveToast" class="text-center text-orange-500 text-xs uppercase tracking-widest font-medium mt-4 hidden">Данные сохранены</p>
+  </section>
+
+  <!-- ЭКРАН 2: СТАТИСТИКА И ИСТОРИЯ -->
+  <section id="screenStats" class="hidden">
+    <div class="card p-4 mb-4">
+      <!-- Рабочий выпадающий список упражнений -->
+      <div class="relative mb-3" id="customSelectWrapper">
+        <input type="hidden" id="statsExerciseSelect" value="">
+        <button type="button" onclick="toggleExerciseDropdown()" class="w-full bg-[#0a0a0a] border border-[#262626] focus:border-[#f59300] rounded-xl p-3 text-sm text-white flex justify-between items-center">
+          <span id="selectedExerciseText">Выбери упражнение</span>
+          <span class="text-[#737373] text-xs">▼</span>
+        </button>
+        <div id="exerciseDropdownList" class="hidden absolute z-30 w-full mt-1.5 bg-[#141414] border border-[#262626] rounded-xl overflow-hidden shadow-2xl"></div>
+      </div>
+
+      <!-- Переключатель метрики графика -->
+      <div class="flex gap-2 mb-4">
+        <button type="button" id="metricWeight" onclick="setMetric('weight')" class="flex-1 py-1.5 text-xs rounded-lg font-medium tab-active transition-all">
+          Макс. рабочий вес (кг)
+        </button>
+        <button type="button" id="metric1RM" onclick="setMetric('1rm')" class="flex-1 py-1.5 text-xs rounded-lg font-medium bg-slate-800 text-slate-400 hover:text-white transition-all">
+          Расчетный 1ПМ (кг)
+        </button>
+      </div>
+
+      <!-- График (увеличена высота с h-60 до h-72 за счет освободившегося места) -->
+      <div class="h-72 relative">
+        <canvas id="progressChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Рекорд и сводка -->
+    <div id="recordBanner" class="card p-4 mb-4 flex justify-between items-center"></div>
+
+    <!-- Подробная история по датам -->
+    <div class="card p-4">
+      <h3 class="text-sm font-bold text-slate-200 mb-3">История подходов по дням</h3>
+      <div id="historyList" class="space-y-2.5 text-sm"></div>
+    </div>
+  </section>
+
+  <script>
+    // Программа тренировок по твоим дням
+    const PROGRAM = {
+      wed: {
+        title: "Среда (15:00–16:30)",
+        exercises: ["Жим лежа", "Бабочка (грудь)", "Пресс"]
+      },
+      fri: {
+        title: "Пятница (15:00–16:30)",
+        exercises: ["Подъем на бицепс", "Трицепс", "Плечи (жим / махи)"]
+      },
+      sun: {
+        title: "Воскресенье (12:30–14:00)",
+        exercises: ["Спина (на широчайшие)", "Спина (на глубину)", "Пресс"]
+      }
+    };
+
+    const ALL_EXERCISES = [...new Set([
+      ...PROGRAM.wed.exercises,
+      ...PROGRAM.fri.exercises,
+      ...PROGRAM.sun.exercises
+    ])];
+
+    let currentDayKey = 'wed';
+    let currentMetric = 'weight';
+    let currentScreen = 'log';
+    let chartInstance = null;
+    let isTransitioningScreen = false;
+    let isTransitioningDay = false;
+
+    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwo86vO3Mx4RU3GJ2-PN2VMNksA0qbOL-spJTTQyP3NdvwLsiZu9NZn5waJ6-vqkW68/exec';
+    function getLogs() {
+      return JSON.parse(localStorage.getItem('gym_logs_v1') || '[]');
+    }
+
+    function saveLogs(logs) {
+      localStorage.setItem('gym_logs_v1', JSON.stringify(logs));
+    }
+
+    async function syncWithCloud() {
+      if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL.startsWith('ВСТАВЬ')) return;
+      const localLogs = getLogs();
+
+      // 1. Сначала гарантированно отправляем локальные записи в таблицу (работает даже с file:///)
+      if (localLogs.length > 0) {
+        fetch(GOOGLE_SCRIPT_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          body: JSON.stringify({ action: 'insert', records: localLogs })
+        }).catch(e => console.error('Ошибка отправки:', e));
+      }
+
+      // 2. Подгружаем записи из таблицы (когда сайт открыт по ссылке на телефоне/хостинге)
+      if (window.location.protocol !== 'file:') {
+        try {
+          const res = await fetch(GOOGLE_SCRIPT_URL, { redirect: 'follow' });
+          const cloudData = await res.json();
+          const cloudIds = new Set(cloudData.map(item => Number(item.id)));
+          const unsynced = localLogs.filter(item => !cloudIds.has(Number(item.id)));
+          const merged = [...cloudData, ...unsynced];
+
+          saveLogs(merged);
+          renderExercisesForm();
+          if (!document.getElementById('screenStats').classList.contains('hidden')) {
+            renderStats();
+          }
+        } catch (e) {
+          console.error('Ошибка чтения из таблицы:', e);
+        }
+      }
+    }
+    // Инициализация при запуске
+   // Инициализация при запуске
+    function init() {
+      const now = new Date();
+      document.getElementById('workoutDate').valueAsDate = now;
+      document.getElementById('currentDateDisplay').innerText = now.toLocaleDateString('ru-RU', {
+        weekday: 'long', day: 'numeric', month: 'long'
+      });
+
+      // Автовыбор дня недели (Пт = 5, Вс = 0, иначе Ср)
+      const dayOfWeek = now.getDay();
+      if (dayOfWeek === 5) currentDayKey = 'fri';
+      else if (dayOfWeek === 0) currentDayKey = 'sun';
+      else currentDayKey = 'wed';
+
+      // Заполнение кастомного выпадающего списка в статистике
+      const selectInput = document.getElementById('statsExerciseSelect');
+      const selectText = document.getElementById('selectedExerciseText');
+      const dropdownList = document.getElementById('exerciseDropdownList');
+
+      selectInput.value = ALL_EXERCISES[0];
+      selectText.innerText = ALL_EXERCISES[0];
+      dropdownList.innerHTML = '';
+
+      ALL_EXERCISES.forEach(ex => {
+        const item = document.createElement('div');
+        item.className = "custom-option p-3 text-sm text-white cursor-pointer border-b border-[#1f1f1f] last:border-none";
+        item.innerText = ex;
+        item.onclick = () => {
+          selectInput.value = ex;
+          selectText.innerText = ex;
+          dropdownList.classList.add('hidden');
+          renderStats();
+        };
+        dropdownList.appendChild(item);
+      });
+
+      selectWorkoutDay(currentDayKey);
+      syncWithCloud();
+    }
+
+  
+    // 1) Плавное переключение вкладок Среда / Воскресенье / Пятница
+  function toggleExerciseDropdown() {
+      document.getElementById('exerciseDropdownList').classList.toggle('hidden');
+    }
+
+    function selectWorkoutDay(dayKey) {
+      const container = document.getElementById('exercisesContainer');
+      currentDayKey = dayKey;
+
+      ['wed', 'fri', 'sun'].forEach(k => {
+        const btn = document.getElementById('dayBtn_' + k);
+        if (k === dayKey) {
+          btn.className = "p-2.5 rounded-xl border-2 border-blue-500 bg-blue-950/50 text-xs font-medium text-center";
+        } else {
+          btn.className = "p-2.5 rounded-xl border border-slate-700 bg-slate-800 text-xs font-medium text-center opacity-75";
+        }
+      });
+
+      // Плавно скрываем старый день, меняем упражнения и плавно показываем
+      container.classList.add('view-hidden');
+      setTimeout(() => {
+        renderExercisesForm();
+        container.classList.remove('view-hidden');
+      }, 160);
+    }
+
+    function switchScreen(screen) {
+      const isLog = screen === 'log';
+      const currentSection = document.getElementById(isLog ? 'screenStats' : 'screenLog');
+      const nextSection = document.getElementById(isLog ? 'screenLog' : 'screenStats');
+
+      document.getElementById('btnTabLog').className = isLog
+        ? "py-2.5 rounded-lg text-sm font-semibold tab-active"
+        : "py-2.5 rounded-lg text-sm font-semibold text-slate-400";
+      document.getElementById('btnTabStats').className = !isLog
+        ? "py-2.5 rounded-lg text-sm font-semibold tab-active"
+        : "py-2.5 rounded-lg text-sm font-semibold text-slate-400";
+
+      // Плавно гасим текущий экран, переключаем и проявляем новый
+      currentSection.classList.add('view-hidden');
+      setTimeout(() => {
+        currentSection.classList.add('hidden');
+        nextSection.classList.remove('hidden');
+        nextSection.classList.add('view-hidden');
+
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            nextSection.classList.remove('view-hidden');
+            if (!isLog) renderStats();
+          });
+        });
+      }, 180);
+    }
+
+    function getLastRecordForExercise(exName) {
+      const logs = getLogs().filter(l => l.exercise === exName);
+      if (logs.length === 0) return null;
+      logs.sort((a, b) => new Date(b.date) - new Date(a.date));
+      return logs[0];
+    }
+
+    // 3) Генерация полей ввода: числа по центру, стрелочки убраны
+    function renderExercisesForm() {
+      const container = document.getElementById('exercisesContainer');
+      container.innerHTML = '';
+
+      PROGRAM[currentDayKey].exercises.forEach((ex, idx) => {
+        const last = getLastRecordForExercise(ex);
+        const lastText = last
+          ? `В прошлый раз (${formatShortDate(last.date)}): <b class="text-blue-400">${last.weight} кг × ${last.reps}</b>`
+          : `Записей пока нет`;
+
+        const staggerDelay = (idx * 0.05).toFixed(2);
+        container.innerHTML += `
+          <div class="card p-4 card-stagger" style="animation-delay: ${staggerDelay}s">
+            <div class="flex justify-between items-start mb-2">
+              <span class="font-bold text-base text-white">${ex}</span>
+              <span class="text-xs text-slate-400">${lastText}</span>
+            </div>
+            <div class="grid grid-cols-2 gap-3 mt-3">
+              <div>
+                <label class="text-xs text-slate-400 block mb-1">Лучший вес (кг)</label>
+                <input type="number" step="0.5" inputmode="decimal" id="weight_${idx}" placeholder="${last ? last.weight : '0'}" class="w-full rounded-xl p-2.5 text-base font-semibold text-center">
+              </div>
+              <div>
+                <label class="text-xs text-slate-400 block mb-1">Повторения</label>
+                <input type="number" step="1" inputmode="numeric" id="reps_${idx}" placeholder="${last ? last.reps : '0'}" class="w-full rounded-xl p-2.5 text-base font-semibold text-center">
+              </div>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    function saveWorkout() {
+      const dateVal = document.getElementById('workoutDate').value;
+      const logs = getLogs();
+      const newRecords = [];
+      let added = 0;
+
+      PROGRAM[currentDayKey].exercises.forEach((ex, idx) => {
+        const w = parseFloat(document.getElementById(`weight_${idx}`).value);
+        const r = parseInt(document.getElementById(`reps_${idx}`).value);
+
+        if (!isNaN(w) && !isNaN(r) && (w > 0 || r > 0)) {
+          // Формула Эпли для расчета 1ПМ
+          const oneRM = Math.round(w * (1 + r / 30) * 10) / 10;
+          logs.push({
+            id: Date.now() + idx,
+            date: dateVal,
+            exercise: ex,
+            weight: w,
+            reps: r,
+            oneRM: oneRM
+          });
+          newRecords.push(logs[logs.length - 1]);
+          added++;
+          document.getElementById(`weight_${idx}`).value = '';
+          document.getElementById(`reps_${idx}`).value = '';
+        }
+      });
+
+      if (added === 0) {
+        alert("Введи вес и повторения хотя бы для одного упражнения!");
+        return;
+      }
+
+      saveLogs(logs);
+      if (newRecords.length > 0 && GOOGLE_SCRIPT_URL && !GOOGLE_SCRIPT_URL.startsWith('ВСТАВЬ')) {
+        fetch(GOOGLE_SCRIPT_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          body: JSON.stringify({ action: 'insert', records: newRecords })
+        }).catch(e => console.error('Ошибка отправки в таблицу:', e));
+      }
+      renderExercisesForm();
+
+      const toast = document.getElementById('saveToast');
+      toast.classList.remove('hidden');
+      setTimeout(() => toast.classList.add('hidden'), 3000);
+    }
+
+    function setMetric(m) {
+      currentMetric = m;
+      document.getElementById('metricWeight').className = m === 'weight'
+        ? "flex-1 py-1.5 text-xs rounded-lg font-medium tab-active transition-all"
+        : "flex-1 py-1.5 text-xs rounded-lg font-medium bg-slate-800 text-slate-400 hover:text-white transition-all";
+      document.getElementById('metric1RM').className = m === '1rm'
+        ? "flex-1 py-1.5 text-xs rounded-lg font-medium tab-active transition-all"
+        : "flex-1 py-1.5 text-xs rounded-lg font-medium bg-slate-800 text-slate-400 hover:text-white transition-all";
+      renderStats();
+    }
+
+    function renderStats() {
+      const ex = document.getElementById('statsExerciseSelect').value;
+      const logs = getLogs()
+        .filter(l => l.exercise === ex)
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+      const labels = logs.map(l => formatShortDate(l.date));
+      const dataPoints = logs.map(l => currentMetric === 'weight' ? l.weight : l.oneRM);
+
+      const ctx = document.getElementById('progressChart').getContext('2d');
+      if (chartInstance) chartInstance.destroy();
+
+      // Мягкий вертикальный градиент под линией графика
+      const gradient = ctx.createLinearGradient(0, 0, 0, 240);
+      gradient.addColorStop(0, 'rgba(245, 147, 0, 0.28)');
+      gradient.addColorStop(1, 'rgba(245, 147, 0, 0.0)');
+
+      chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: dataPoints,
+            borderColor: '#f59300',
+            backgroundColor: gradient,
+            borderWidth: 2.5,
+            pointBackgroundColor: '#0a0a0a',
+            pointBorderColor: '#f59300',
+            pointBorderWidth: 2.5,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            pointHoverBackgroundColor: '#f59300',
+            tension: 0.38,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: {
+            duration: 850,
+            easing: 'easeOutQuart',
+            y: {
+              from: (ctx) => ctx.chart.scales.y.getPixelForValue(ctx.chart.scales.y.min || 0)
+            }
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#141414',
+              titleColor: '#737373',
+              bodyColor: '#ffffff',
+              borderColor: '#262626',
+              borderWidth: 1,
+              padding: 10,
+              displayColors: false,
+              callbacks: {
+                label: function(context) {
+                  const item = logs[context.dataIndex];
+                  return `${item.weight} кг × ${item.reps} повт. (1ПМ: ${item.oneRM} кг)`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              border: { display: false },
+              ticks: { color: '#666666', font: { family: 'Inter', size: 11 } }
+            },
+            y: {
+              border: { display: false, dash: [4, 4] },
+              grid: { color: '#1c1c1c' },
+              ticks: { color: '#666666', font: { family: 'Inter', size: 11 }, padding: 8 }
+            }
+          }
+        }
+      });
+
+      // Личный рекорд
+      const banner = document.getElementById('recordBanner');
+      if (logs.length > 0) {
+        const best = [...logs].sort((a, b) => b.weight - a.weight || b.reps - a.reps)[0];
+        banner.innerHTML = `
+          <div>
+            <div class="text-xs text-slate-400">Абсолютный рекорд в упражнении:</div>
+            <div class="text-lg font-bold text-emerald-400 mt-0.5">${best.weight} кг × ${best.reps} повт.</div>
+          </div>
+          <div class="text-right">
+            <div class="text-xs text-slate-400">Дата рекорда</div>
+            <div class="text-sm font-semibold text-slate-200">${formatFullDate(best.date)}</div>
+          </div>
+        `;
+      } else {
+        banner.innerHTML = `<div class="text-xs text-slate-400">Нет записей по этому упражнению</div>`;
+      }
+
+      // Список по датам
+      const historyList = document.getElementById('historyList');
+      historyList.innerHTML = '';
+      [...logs].reverse().forEach(item => {
+        historyList.innerHTML += `
+          <div class="flex justify-between items-center p-2.5 bg-slate-900/70 rounded-xl border border-slate-800">
+            <div>
+              <div class="font-semibold text-white">${item.weight} кг × ${item.reps} повт.</div>
+              <div class="text-xs text-slate-400">${formatFullDate(item.date)}</div>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="text-xs bg-slate-800 text-blue-300 px-2.5 py-1 rounded-lg">1ПМ: ${item.oneRM} кг</span>
+              <button type="button" onclick="deleteEntry(${item.id})" class="text-slate-500 hover:text-red-400 text-xs px-1">✕</button>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    function deleteEntry(id) {
+      if (!confirm("Удалить эту запись?")) return;
+      const logs = getLogs().filter(l => l.id !== id);
+      saveLogs(logs);
+      if (GOOGLE_SCRIPT_URL && !GOOGLE_SCRIPT_URL.startsWith('ВСТАВЬ')) {
+        fetch(GOOGLE_SCRIPT_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          body: JSON.stringify({ action: 'delete', id: id })
+        }).catch(e => console.error('Ошибка удаления из таблицы:', e));
+      }
+      renderStats();
+      renderExercisesForm();
+    }
+
+    function exportBackup() {
+      const data = localStorage.getItem('gym_logs_v1') || '[]';
+      const blob = new Blob([data], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `gym_backup_${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+    }
+
+    function formatShortDate(dStr) {
+      const d = new Date(dStr);
+      return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
+    }
+
+    function formatFullDate(dStr) {
+      const d = new Date(dStr);
+      return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+    }
+
+    init();
+  </script>
+</body>
+</html>
