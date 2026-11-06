@@ -8,8 +8,25 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Sporthub">
-  <link rel="manifest" href='data:application/manifest+json,{"name":"Sporthub","short_name":"Sporthub","start_url":".","display":"standalone","background_color":"#09090b","theme_color":"#09090b"}'>
+  <script>
+    (function() {
+      const iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512"><rect width="512" height="512" rx="110" fill="#09090b"/><text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-weight="900" font-size="110" fill="#ffffff">SPORT</text><rect x="96" y="320" width="320" height="75" rx="16" fill="#f97316"/><text x="50%" y="362" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-weight="900" font-size="68" fill="#000000">HUB</text></svg>`;
+      const iconUrl = 'data:image/svg+xml;utf8,' + encodeURIComponent(iconSvg);
+      const manifest = {
+        name: "Sporthub",
+        short_name: "Sporthub",
+        start_url: window.location.href,
+        display: "standalone",
+        background_color: "#09090b",
+        theme_color: "#09090b",
+        icons: [{ src: iconUrl, sizes: "512x512", type: "image/svg+xml", purpose: "any maskable" }]
+      };
+      const link = document.createElement('link');
+      link.rel = 'manifest';
+      link.href = 'data:application/manifest+json;utf8,' + encodeURIComponent(JSON.stringify(manifest));
+      document.head.appendChild(link);
+    })();
+  </script>
   <meta name="theme-color" content="#0a0a0a">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
