@@ -374,6 +374,7 @@
       <div class="h-72 relative">
         <canvas id="progressChart"></canvas>
       </div>
+      <p class="text-[11px] text-slate-400 mt-2 text-center">На графике — лучший результат за каждый день</p>
     </div>
 
     <!-- Рекорд и сводка -->
@@ -382,6 +383,7 @@
     <!-- Подробная история по датам -->
     <div class="card p-4">
       <h3 class="text-sm font-bold text-slate-200 mb-3">История подходов по дням</h3>
+      <p class="text-[11px] text-slate-400 mb-2">★ — лучший подход за день (он же на графике)</p>
       <div id="historyList" class="space-y-2.5 text-sm"></div>
     </div>
   </section>
@@ -556,7 +558,13 @@
     function getLastRecordForExercise(exName) {
       const logs = getLogs().filter(l => l.exercise === exName);
       if (logs.length === 0) return null;
-      logs.sort((a, b) => new Date(b.date) - new Date(a.date));
+      logs.sort((a, b) => {
+        const d = getDayKey(b.date).localeCompare(getDayKey(a.date));
+        if (d !== 0) return d;
+        return Number(b.weight) - Number(a.weight) ||
+          Number(b.reps) - Number(a.reps) ||
+          (Number(b.id) || 0) - (Number(a.id) || 0);
+      });
       return logs[0];
     }
 
@@ -652,14 +660,72 @@
       renderStats();
     }
 
+    function getDayKey(dStr) {
+      if (!dStr) return '';
+      const str = String(dStr).trim();
+      // Год-месяц-день (как из <input type="date">)
+      if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+      // ISO-дата со временем (например 2026-11-04T10:00:00.000Z) — берем сам день
+      const iso = str.match(/^(\d{4}-\d{2}-\d{2})T/);
+      if (iso) return iso[1];
+      // День.Месяц.Год (как может прийти из Google Таблицы)
+      const ru = str.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+      if (ru) return `${ru[3]}-${ru[2].padStart(2, '0')}-${ru[1].padStart(2, '0')}`;
+      const d = new Date(str);
+      if (!isNaN(d.getTime())) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+      }
+      return str;
+    }
+
+    function isBetterForMetric(candidate, currentBest, metric) {
+      const cWeight = Number(candidate.weight) || 0;
+      const bWeight = Number(currentBest.weight) || 0;
+      const cReps = Number(candidate.reps) || 0;
+      const bReps = Number(currentBest.reps) || 0;
+      const c1RM = Number(candidate.oneRM) || 0;
+      const b1RM = Number(currentBest.oneRM) || 0;
+      const cId = Number(candidate.id) || 0;
+      const bId = Number(currentBest.id) || 0;
+
+      if (metric === '1rm') {
+        if (c1RM !== b1RM) return c1RM > b1RM;
+        if (cWeight !== bWeight) return cWeight > bWeight;
+        if (cReps !== bReps) return cReps > bReps;
+        return cId > bId;
+      }
+
+      if (cWeight !== bWeight) return cWeight > bWeight;
+      if (cReps !== bReps) return cReps > bReps;
+      if (c1RM !== b1RM) return c1RM > b1RM;
+      return cId > bId;
+    }
+
     function renderStats() {
       const ex = document.getElementById('statsExerciseSelect').value;
       const logs = getLogs()
         .filter(l => l.exercise === ex)
-        .sort((a, b) => new Date(a.date) - new Date(b.date));
+        .sort((a, b) => {
+          const d = getDayKey(a.date).localeCompare(getDayKey(b.date));
+          return d !== 0 ? d : (Number(a.id) || 0) - (Number(b.id) || 0);
+        });
 
-      const labels = logs.map(l => formatShortDate(l.date));
-      const dataPoints = logs.map(l => currentMetric === 'weight' ? l.weight : l.oneRM);
+      // Для графика берем только один лучший результат за каждый день (по выбранной метрике)
+      const bestByDay = new Map();
+      logs.forEach(item => {
+        const dayKey = getDayKey(item.date);
+        const existing = bestByDay.get(dayKey);
+        if (!existing || isBetterForMetric(item, existing, currentMetric)) {
+          bestByDay.set(dayKey, item);
+        }
+      });
+      const chartLogs = Array.from(bestByDay.values());
+
+      const labels = chartLogs.map(l => formatShortDate(l.date));
+      const dataPoints = chartLogs.map(l => currentMetric === 'weight' ? Number(l.weight) : Number(l.oneRM));
 
       const ctx = document.getElementById('progressChart').getContext('2d');
       if (chartInstance) chartInstance.destroy();
@@ -710,7 +776,7 @@
               displayColors: false,
               callbacks: {
                 label: function(context) {
-                  const item = logs[context.dataIndex];
+                  const item = chartLogs[context.dataIndex];
                   return `${item.weight} кг × ${item.reps} повт. (1ПМ: ${item.oneRM} кг)`;
                 }
               }
@@ -734,7 +800,7 @@
       // Личный рекорд
       const banner = document.getElementById('recordBanner');
       if (logs.length > 0) {
-        const best = [...logs].sort((a, b) => b.weight - a.weight || b.reps - a.reps)[0];
+        const best = [...logs].sort((a, b) => Number(b.weight) - Number(a.weight) || Number(b.reps) - Number(a.reps))[0];
         banner.innerHTML = `
           <div>
             <div class="text-xs text-slate-400">Абсолютный рекорд в упражнении:</div>
@@ -749,19 +815,21 @@
         banner.innerHTML = `<div class="text-xs text-slate-400">Нет записей по этому упражнению</div>`;
       }
 
-      // Список по датам
+      // Список по датам (показываем все подходы, лучший за день помечаем звездочкой)
       const historyList = document.getElementById('historyList');
       historyList.innerHTML = '';
+      const bestIds = new Set(chartLogs.map(l => l.id));
       [...logs].reverse().forEach(item => {
+        const isBest = bestIds.has(item.id);
         historyList.innerHTML += `
           <div class="flex justify-between items-center p-2.5 bg-slate-900/70 rounded-xl border border-slate-800">
             <div>
-              <div class="font-semibold text-white">${item.weight} кг × ${item.reps} повт.</div>
+              <div class="font-semibold text-white">${item.weight} кг × ${item.reps} повт.${isBest ? ' <span class="text-[#f59300]">★</span>' : ''}</div>
               <div class="text-xs text-slate-400">${formatFullDate(item.date)}</div>
             </div>
             <div class="flex items-center gap-3">
               <span class="text-xs bg-slate-800 text-blue-300 px-2.5 py-1 rounded-lg">1ПМ: ${item.oneRM} кг</span>
-              <button type="button" onclick="deleteEntry(${item.id})" class="text-slate-500 hover:text-red-400 text-xs px-1">✕</button>
+              <button type="button" onclick="deleteEntry(${JSON.stringify(item.id)})" class="text-slate-500 hover:text-red-400 text-xs px-1">✕</button>
             </div>
           </div>
         `;
@@ -770,7 +838,7 @@
 
     function deleteEntry(id) {
       if (!confirm("Удалить эту запись?")) return;
-      const logs = getLogs().filter(l => l.id !== id);
+      const logs = getLogs().filter(l => Number(l.id) !== Number(id));
       saveLogs(logs);
       if (GOOGLE_SCRIPT_URL && !GOOGLE_SCRIPT_URL.startsWith('ВСТАВЬ')) {
         fetch(GOOGLE_SCRIPT_URL, {
@@ -794,12 +862,14 @@
     }
 
     function formatShortDate(dStr) {
-      const d = new Date(dStr);
+      const d = new Date(getDayKey(dStr));
+      if (isNaN(d.getTime())) return String(dStr);
       return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
     }
 
     function formatFullDate(dStr) {
-      const d = new Date(dStr);
+      const d = new Date(getDayKey(dStr));
+      if (isNaN(d.getTime())) return String(dStr);
       return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
     }
 
